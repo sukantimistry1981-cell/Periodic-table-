@@ -1,0 +1,167 @@
+
+import pygame
+import random
+
+pygame.init()
+
+W, H = 400, 650
+screen = pygame.display.set_mode((W, H))
+pygame.display.set_caption("Turbo Car Racing")
+clock = pygame.time.Clock()
+
+font = pygame.font.Font(None, 36)
+small = pygame.font.Font(None, 28)
+
+car = pygame.Rect(175, 500, 50, 85)
+enemies = []
+score = 0
+speed = 5
+road_line = 0
+spawn = 0
+game_over = False
+running = True
+left = False
+right = False
+
+# Touch buttons
+left_btn = pygame.Rect(25, 555, 100, 70)
+right_btn = pygame.Rect(275, 555, 100, 70)
+restart_btn = pygame.Rect(100, 350, 200, 55)
+
+def draw_car(rect, color):
+    pygame.draw.rect(screen, color, rect, border_radius=10)
+    pygame.draw.rect(screen, (180, 230, 255),
+                     (rect.x + 8, rect.y + 12, 34, 22),
+                     border_radius=5)
+    pygame.draw.rect(screen, (30, 30, 40),
+                     (rect.x + 8, rect.y + 48, 34, 20),
+                     border_radius=4)
+    pygame.draw.rect(screen, (255, 255, 180),
+                     (rect.x + 4, rect.y + 3, 10, 6))
+    pygame.draw.rect(screen, (255, 255, 180),
+                     (rect.right - 14, rect.y + 3, 10, 6))
+
+while running:
+    clock.tick(60)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            x, y = event.pos
+            if game_over:
+                if restart_btn.collidepoint(x, y):
+                    car.x = 175
+                    enemies.clear()
+                    score = 0
+                    speed = 5
+                    spawn = 0
+                    game_over = False
+            else:
+                if left_btn.collidepoint(x, y):
+                    left = True
+                if right_btn.collidepoint(x, y):
+                    right = True
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            left = False
+            right = False
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                left = True
+            if event.key == pygame.K_RIGHT:
+                right = True
+            if event.key == pygame.K_r and game_over:
+                car.x = 175
+                enemies.clear()
+                score = 0
+                speed = 5
+                spawn = 0
+                game_over = False
+
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT:
+                left = False
+            if event.key == pygame.K_RIGHT:
+                right = False
+
+    if not game_over:
+        if left:
+            car.x -= 6
+        if right:
+            car.x += 6
+
+        car.x = max(80, min(270, car.x))
+
+        road_line = (road_line + speed) % 60
+        spawn += 1
+
+        if spawn > max(18, 50 - score // 3):
+            x = random.choice([95, 175, 255])
+            enemies.append(pygame.Rect(x, -100, 50, 85))
+            spawn = 0
+
+        for enemy in enemies[:]:
+            enemy.y += speed
+
+            if enemy.colliderect(car):
+                game_over = True
+
+            if enemy.top > H:
+                enemies.remove(enemy)
+                score += 1
+                speed = min(12, 5 + score // 5)
+
+    # Background and road
+    screen.fill((25, 120, 45))
+    pygame.draw.rect(screen, (45, 45, 50), (65, 0, 270, H))
+
+    pygame.draw.line(screen, (255, 255, 255),
+                     (65, 0), (65, H), 5)
+    pygame.draw.line(screen, (255, 255, 255),
+                     (335, 0), (335, H), 5)
+
+    for y in range(-60, H, 60):
+        yy = (y + road_line) % H
+        pygame.draw.rect(screen, (240, 240, 240),
+                         (150, yy, 6, 30))
+        pygame.draw.rect(screen, (240, 240, 240),
+                         (245, yy, 6, 30))
+
+    draw_car(car, (20, 150, 255))
+
+    for enemy in enemies:
+        draw_car(enemy, (240, 45, 55))
+
+    screen.blit(font.render("Score: " + str(score),
+                            True, (255, 255, 0)), (10, 10))
+
+    # Touch controls
+    pygame.draw.rect(screen, (30, 80, 180),
+                     left_btn, border_radius=12)
+    pygame.draw.rect(screen, (30, 80, 180),
+                     right_btn, border_radius=12)
+
+    screen.blit(font.render("<", True, (255, 255, 255)),
+                (left_btn.x + 40, left_btn.y + 18))
+    screen.blit(font.render(">", True, (255, 255, 255)),
+                (right_btn.x + 40, right_btn.y + 18))
+
+    if game_over:
+        pygame.draw.rect(screen, (20, 20, 20),
+                         (45, 245, 310, 180), border_radius=15)
+        screen.blit(font.render("GAME OVER", True,
+                                (255, 60, 60)), (105, 265))
+        screen.blit(small.render("Final Score: " + str(score),
+                                 True, (255, 255, 255)), (125, 310))
+        pygame.draw.rect(screen, (20, 150, 60),
+                         restart_btn, border_radius=10)
+        screen.blit(small.render("TAP TO RESTART", True,
+                                 (255, 255, 255)),
+                    (restart_btn.x + 25, restart_btn.y + 17))
+
+    pygame.display.flip()
+
+pygame.quit()
